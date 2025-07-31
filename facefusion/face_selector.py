@@ -3,7 +3,7 @@ from typing import List
 import numpy
 
 from facefusion import state_manager
-from facefusion.types import Face, FaceSelectorOrder, FaceSet, Gender, Race, Score
+from facefusion.types import Face, FaceSelectorOrder, FaceSet, Gender, Race
 
 
 def find_similar_faces(faces : List[Face], reference_faces : FaceSet, face_distance : float) -> List[Face]:
@@ -46,38 +46,22 @@ def sort_and_filter_faces(faces : List[Face]) -> List[Face]:
 
 def sort_faces_by_order(faces : List[Face], order : FaceSelectorOrder) -> List[Face]:
 	if order == 'left-right':
-		return sorted(faces, key = get_bounding_box_left)
+		return sorted(faces, key = lambda face: face.bounding_box[0])
 	if order == 'right-left':
-		return sorted(faces, key = get_bounding_box_left, reverse = True)
+		return sorted(faces, key = lambda face: face.bounding_box[0], reverse = True)
 	if order == 'top-bottom':
-		return sorted(faces, key = get_bounding_box_top)
+		return sorted(faces, key = lambda face: face.bounding_box[1])
 	if order == 'bottom-top':
-		return sorted(faces, key = get_bounding_box_top, reverse = True)
+		return sorted(faces, key = lambda face: face.bounding_box[1], reverse = True)
 	if order == 'small-large':
-		return sorted(faces, key = get_bounding_box_area)
+		return sorted(faces, key = lambda face: (face.bounding_box[2] - face.bounding_box[0]) * (face.bounding_box[3] - face.bounding_box[1]))
 	if order == 'large-small':
-		return sorted(faces, key = get_bounding_box_area, reverse = True)
+		return sorted(faces, key = lambda face: (face.bounding_box[2] - face.bounding_box[0]) * (face.bounding_box[3] - face.bounding_box[1]), reverse = True)
 	if order == 'best-worst':
-		return sorted(faces, key = get_face_detector_score, reverse = True)
+		return sorted(faces, key = lambda face: face.score_set.get('detector'), reverse = True)
 	if order == 'worst-best':
-		return sorted(faces, key = get_face_detector_score)
+		return sorted(faces, key = lambda face: face.score_set.get('detector'))
 	return faces
-
-
-def get_bounding_box_left(face : Face) -> float:
-	return face.bounding_box[0]
-
-
-def get_bounding_box_top(face : Face) -> float:
-	return face.bounding_box[1]
-
-
-def get_bounding_box_area(face : Face) -> float:
-	return (face.bounding_box[2] - face.bounding_box[0]) * (face.bounding_box[3] - face.bounding_box[1])
-
-
-def get_face_detector_score(face : Face) -> Score:
-	return face.score_set.get('detector')
 
 
 def filter_faces_by_gender(faces : List[Face], gender : Gender) -> List[Face]:

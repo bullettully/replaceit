@@ -1,6 +1,8 @@
+import hashlib
 from typing import List, Optional
 
-from facefusion.hash_helper import create_hash
+import numpy
+
 from facefusion.types import Face, FaceSet, FaceStore, VisionFrame
 
 FACE_STORE : FaceStore =\
@@ -15,29 +17,40 @@ def get_face_store() -> FaceStore:
 
 
 def get_static_faces(vision_frame : VisionFrame) -> Optional[List[Face]]:
-	vision_hash = create_hash(vision_frame.tobytes())
-	return FACE_STORE.get('static_faces').get(vision_hash)
+	frame_hash = create_frame_hash(vision_frame)
+	if frame_hash in FACE_STORE['static_faces']:
+		return FACE_STORE['static_faces'][frame_hash]
+	return None
 
 
 def set_static_faces(vision_frame : VisionFrame, faces : List[Face]) -> None:
-	vision_hash = create_hash(vision_frame.tobytes())
-	if vision_hash:
-		FACE_STORE['static_faces'][vision_hash] = faces
+	frame_hash = create_frame_hash(vision_frame)
+	if frame_hash:
+		FACE_STORE['static_faces'][frame_hash] = faces
 
 
 def clear_static_faces() -> None:
-	FACE_STORE['static_faces'].clear()
+	FACE_STORE['static_faces'] = {}
+
+
+def create_frame_hash(vision_frame : VisionFrame) -> Optional[str]:
+	if numpy.any(vision_frame):
+		frame_hash = hashlib.blake2b(vision_frame.tobytes(), digest_size = 16).hexdigest()
+		return frame_hash
+	return None
 
 
 def get_reference_faces() -> Optional[FaceSet]:
-	return FACE_STORE.get('reference_faces')
+	if FACE_STORE['reference_faces']:
+		return FACE_STORE['reference_faces']
+	return None
 
 
 def append_reference_face(name : str, face : Face) -> None:
-	if name not in FACE_STORE.get('reference_faces'):
+	if name not in FACE_STORE['reference_faces']:
 		FACE_STORE['reference_faces'][name] = []
 	FACE_STORE['reference_faces'][name].append(face)
 
 
 def clear_reference_faces() -> None:
-	FACE_STORE['reference_faces'].clear()
+	FACE_STORE['reference_faces'] = {}
